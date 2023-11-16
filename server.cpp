@@ -123,16 +123,23 @@ int main()
                 std::cout << "Received data from client: " << buffer << std::endl;
 
                 // 发送响应给客户端
-                const char *response = "Hello from server!";
-                ssize_t bytesSent = send(clientSocket, response, strlen(response), 0);
-                if (bytesSent == -1)
+                // 重复10次，中间sleep 1ms
+                for (int j = 0; j < 10; ++j)
                 {
-                    std::cerr << "Failed to send response to client" << std::endl;
-                    close(clientSocket);
-                    epoll_ctl(epollFd, EPOLL_CTL_DEL, clientSocket, nullptr);
-                    continue;
+                    char *response = (char *)malloc(sizeof(char) * (bytesRead + 100));
+                    sprintf(response,"Hello from server %d count!", j);
+                    // response加上idx，用于模拟重复发送
+                    ssize_t bytesSent = send(clientSocket, response, bytesRead, 0);
+                    if (bytesSent == -1)
+                    {
+                        std::cerr << "Failed to send data to client" << std::endl;
+                        close(clientSocket);
+                        epoll_ctl(epollFd, EPOLL_CTL_DEL, clientSocket, nullptr);
+                        break;
+                    }
+                    usleep(1000);
                 }
-
+                
                 std::cout << "Response sent to client" << std::endl;
             }
         }
