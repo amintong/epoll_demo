@@ -4,17 +4,67 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <cstring>
+#include <csignal>
+
+
+
+int serverSocket = -1;  // 全局变量用于存储套接字
+int epollFd = -1;  // 全局变量用于存储套接字
+
+// SIGINT 信号处理函数
+void handleSignal(int signal) {
+    if (signal == SIGINT) {
+        std::cout << "Received SIGINT signal. Cleaning up and exiting..." << std::endl;
+        // 在这里使用全局变量 globalSocket 进行操作
+        if (serverSocket != -1)
+        {
+            // 打印日志
+            // 关闭套接字
+            std::cout << "Closing socket..." << std::endl;
+            // 关闭套接字
+            close(serverSocket);
+            
+        }
+        // 关闭 epoll 句子的文件描述符
+        if (epollFd != -1)
+        {
+            // 打印日志
+            // 关闭 epoll 句子的文件描述符
+            std::cout << "Closing epoll fd..." << std::endl;
+            // 关闭 epoll 句子的文件描述符    
+            close(epollFd);
+        }
+
+        // 退出程序
+        exit(0);
+    }
+}
+
 
 int main()
 {
+    // 接收 SIGINT 信号
+    // 注册所有信号的处理函数
+    signal(SIGINT, handleSignal);
+    
+
+
     // 创建服务器套接字
-    int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == -1)
     {
         std::cerr << "Failed to create socket" << std::endl;
         return 1;
     }
 
+    // 设置 SO_REUSEADDR 选项
+    int reuse = 1;
+    if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1) {
+        std::cerr << "Failed to set SO_REUSEADDR option" << std::endl;
+        close(serverSocket);
+        return 1;
+    }
+    
     // 绑定服务器地址和端口
     sockaddr_in serverAddress{};
     serverAddress.sin_family = AF_INET;
@@ -38,7 +88,7 @@ int main()
     std::cout << "Server started. Listening on port 8080..." << std::endl;
 
     // 创建 epoll 实例
-    int epollFd = epoll_create1(0);
+    epollFd = epoll_create1(0);
     if (epollFd == -1)
     {
         std::cerr << "Failed to create epoll instance" << std::endl;
