@@ -1,7 +1,7 @@
 CC = gcc
 CXX = g++
-CFLAGS = -std=c++11
-LDFLAGS = -lstdc++
+CFLAGS = -std=c++11 -pthread -g
+LDFLAGS = -lstdc++ 
 
 all: server client
 

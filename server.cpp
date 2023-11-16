@@ -64,7 +64,7 @@ int main()
         close(serverSocket);
         return 1;
     }
-    
+
     // 绑定服务器地址和端口
     sockaddr_in serverAddress{};
     serverAddress.sin_family = AF_INET;
@@ -152,7 +152,7 @@ int main()
             {
                 // 有数据可读
                 int clientSocket = events[i].data.fd;
-                char buffer[1024];
+                char buffer[10240];
                 ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
                 if (bytesRead <= 0)
                 {
@@ -173,24 +173,26 @@ int main()
                 std::cout << "Received data from client: " << buffer << std::endl;
 
                 // 发送响应给客户端
-                // 重复10次，中间sleep 1ms
-                for (int j = 0; j < 10; ++j)
+                // 把buffer按\n进行分割，然后依次发送
+                int start = 0;
+                int end = 0;
+                for (end = 0; end < strlen(buffer); end++)
                 {
-                    char *response = (char *)malloc(sizeof(char) * (bytesRead + 100));
-                    sprintf(response,"Hello from server %d count!", j);
-                    // response加上idx，用于模拟重复发送
-                    ssize_t bytesSent = send(clientSocket, response, bytesRead, 0);
-                    if (bytesSent == -1)
+                    if (buffer[end] == '\n' || end == strlen(buffer)-1) 
                     {
-                        std::cerr << "Failed to send data to client" << std::endl;
-                        close(clientSocket);
-                        epoll_ctl(epollFd, EPOLL_CTL_DEL, clientSocket, nullptr);
-                        break;
-                    }
-                    usleep(1000);
-                }
-                
-                std::cout << "Response sent to client" << std::endl;
+                        ssize_t bytesSent = send(clientSocket, &buffer[start], end-start+1, 0);
+                        if (bytesSent == -1)
+                        {
+                            std::cerr << "Failed to send data to client" << std::endl;
+                            close(clientSocket);
+                            epoll_ctl(epollFd, EPOLL_CTL_DEL, clientSocket, nullptr);
+                            break;
+                        }else{
+                            start = end+1;
+                        }
+                        // usleep(1);
+                    }   
+                }                                        
             }
         }
     }
